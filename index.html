@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CanWe..?</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+    :root {
+      --bg-base: #070b16;
+      --bg-deep: #05070f;
+      --bg-mid: #101a31;
+      --line-soft: rgba(210, 236, 255, 0.2);
+      --card-bg: linear-gradient(145deg, rgba(14, 20, 42, 0.92), rgba(7, 10, 24, 0.9));
+      --txt-main: #e8f4ff;
+      --txt-dim: #98acc3;
+
+      --neon-g: #52ff9a;
+      --neon-p: #ff5b8a;
+      --neon-y: #ffd166;
+      --neon-c: #6de5ff;
+      --neon-r: #ff6b6b;
+      --neon-b: #88a8ff;
+
+      --accent-intro: rgba(82,255,154,.86);
+      --accent-form: rgba(255,91,138,.9);
+      --accent-choice: rgba(255,209,102,.9);
+      --accent-win: rgba(109,229,255,.9);
+      --accent-fail: rgba(255,107,107,.88);
+
+      --rad-lg: 24px;
+      --rad-md: 16px;
+      --rad-sm: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background:
+        radial-gradient(1300px 700px at 12% 0%, rgba(63, 113, 255, 0.18), transparent 62%),
+        radial-gradient(1000px 600px at 90% 100%, rgba(255, 107, 107, 0.12), transparent 60%),
+        linear-gradient(160deg, var(--bg-base), var(--bg-mid) 45%, var(--bg-deep));
+      font-family: 'Press Start 2P', monospace;
+      color: var(--txt-main);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #bgCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    .scanlines {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.022) 0,
+        rgba(255,255,255,0.022) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      mix-blend-mode: soft-light;
+    }
+
+    .vignette {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(2,5,12,0) 45%, rgba(1,2,8,0.8) 100%);
+    }
+
+    .screen {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      padding: clamp(0.8rem, 3vw, 1.4rem);
+      min-height: 100dvh;
+    }
+
+    .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.93); }
+
+    .card {
+      position: relative;
+      width: min(94vw, 620px);
+      padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.1rem, 2.6vw, 2.2rem);
+      border-radius: var(--rad-lg);
+      background: var(--card-bg);
+      border: 3px solid var(--line-soft);
+      text-align: center;
+      backdrop-filter: blur(4px);
+      box-shadow:
+        0 26px 48px rgba(0,0,0,0.45),
+        0 0 24px rgba(47, 118, 255, 0.18);
+      animation: panelRise .45s ease;
+    }
+
+    .card::before {
+      content: none;
+    }
+
+    .card::after {
+      content: none;
+    }
+
+    .card-green {
+      border-color: rgba(82,255,154,0.82);
+      box-shadow:
+        0 24px 44px rgba(0,0,0,0.45),
+        0 0 28px rgba(82,255,154,0.3);
+    }
+
+    .card-pink {
+      border-color: rgba(255,91,138,0.84);
+      box-shadow:
+        0 24px 44px rgba(0,0,0,0.45),
+        0 0 28px rgba(255,91,138,0.28);
+    }
+
+    .card-yellow {
+      border-color: rgba(255,209,102,0.86);
+      box-shadow:
+        0 24px 44px rgba(0,0,0,0.45),
+        0 0 28px rgba(255,209,102,0.3);
+    }
+
+    .card-danger {
+      border-color: rgba(255,107,107,0.9);
+      box-shadow:
+        0 24px 44px rgba(0,0,0,0.45),
+        0 0 30px rgba(255,107,107,0.3);
+    }
+
+    #screen1 .card {
+      border-color: var(--accent-intro);
+    }
+    #screen2 .card {
+      border-color: var(--accent-form);
+    }
+    #screen3 .card {
+      border-color: var(--accent-choice);
+    }
+    #screen5 .card {
+      border-color: var(--accent-fail);
+    }
+
+    .quest-note {
+      font-size: .5rem;
+      color: var(--txt-dim);
+      line-height: 2.3;
+      margin-bottom: .8rem;
+      letter-spacing: .08em;
+    }
+
+    /* S1 */
+    #screen1 .blink {
+      font-size: clamp(.62rem, 1.8vw, .84rem);
+      color: var(--neon-g);
+      text-shadow: 0 0 10px rgba(82,255,154,0.8);
+      animation: blink 1.1s steps(1) infinite;
+      margin-top: 1.1rem;
+    }
+
+    /* S2 */
+    #screen2 h2,
+    #screen3 h2 {
+      letter-spacing: .05em;
+      margin-bottom: .8rem;
+      line-height: 1.8;
+    }
+
+    #screen2 h2 {
+      font-size: clamp(.74rem, 2vw, .98rem);
+      color: var(--neon-p);
+      text-shadow: 0 0 12px rgba(255,91,138,.7);
+    }
+
+    #screen2 input {
+      width: 100%;
+      padding: .95rem 1rem;
+      font-family: 'Press Start 2P', monospace;
+      font-size: .7rem;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border: 2px solid rgba(255,91,138,.72);
+      border-radius: var(--rad-md);
+      color: #fff;
+      outline: none;
+      text-align: center;
+      margin-bottom: 1.2rem;
+      box-shadow: inset 0 0 14px rgba(0,0,0,.35), 0 0 16px rgba(255,91,138,.22);
+      text-transform: capitalize;
+      transition: transform .15s ease, box-shadow .2s ease;
+    }
+
+    #screen2 input:focus {
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 14px rgba(0,0,0,.35), 0 0 0 3px rgba(255,91,138,.25), 0 0 18px rgba(255,91,138,.32);
+    }
+
+    #screen2 input::placeholder { color: #c4b3bc; }
+
+    #screen2 .next-btn,
+    .btn-yes,
+    .btn-no,
+    .dl-btn,
+    #screen5 .retry-btn {
+      font-family: 'Press Start 2P', monospace;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: transform .13s ease, filter .18s ease, box-shadow .2s ease;
+    }
+
+    #screen2 .next-btn {
+      font-size: .67rem;
+      padding: .84rem 1.9rem;
+      background: linear-gradient(180deg, #ff87ab, #ff5b8a);
+      color: #22040f;
+      box-shadow: 0 8px 0 #b3335c, 0 0 18px rgba(255,91,138,.45);
+    }
+
+    #screen2 .next-btn:hover,
+    .btn-yes:hover,
+    .btn-no:hover,
+    .dl-btn:hover,
+    #screen5 .retry-btn:hover { transform: translateY(-2px) scale(1.01); }
+
+    #screen2 .next-btn:active,
+    .btn-yes:active,
+    .btn-no:active,
+    .dl-btn:active,
+    #screen5 .retry-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,.45);
+    }
+
+    /* S3 */
+    #screen3 h2 {
+      font-size: clamp(.95rem, 3vw, 1.45rem);
+      color: var(--neon-y);
+      text-shadow: 0 0 14px rgba(255,209,102,.72);
+      animation: glitch 3s steps(1) infinite;
+    }
+
+    #screen3 .subq {
+      font-size: .53rem;
+      color: #ced8e8;
+      margin-bottom: 1.6rem;
+      line-height: 2.2;
+      white-space: pre-line;
+    }
+
+    .choice-btns { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+
+    .btn-yes,
+    .btn-no {
+      font-size: .7rem;
+      padding: .9rem 1.9rem;
+      min-width: 130px;
+    }
+
+    .btn-yes {
+      background: linear-gradient(180deg, #9dffc5, var(--neon-g));
+      color: #002210;
+      box-shadow: 0 7px 0 #1f8a57, 0 0 16px rgba(82,255,154,.4);
+    }
+
+    .btn-no {
+      background: linear-gradient(180deg, #ff9a9a, var(--neon-r));
+      color: #2a0404;
+      box-shadow: 0 7px 0 #a03434, 0 0 16px rgba(255,107,107,.35);
+    }
+
+    /* S4 */
+    #screen4 { flex-direction: column; overflow: hidden; }
+    #celebCanvas { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    #rainCanvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+    #screen4 .gift-wrap {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.2rem;
+      border-radius: var(--rad-lg);
+      background: linear-gradient(150deg, rgba(9,13,30,.64), rgba(6,9,22,.42));
+      border: 3px solid var(--accent-win);
+      backdrop-filter: blur(2px);
+      box-shadow:
+        0 20px 38px rgba(0,0,0,.45),
+        0 0 24px rgba(109,229,255,.3);
+    }
+
+    #joyGif {
+      width: 164px;
+      height: 164px;
+      border-radius: 20px;
+      border: 2px solid rgba(82,255,154,.72);
+      box-shadow: 0 0 24px rgba(255,209,102,.58), 0 0 42px rgba(255,209,102,.25);
+      overflow: hidden;
+      display: block;
+      object-fit: cover;
+      background: #070714;
+    }
+
+    #screen4 .yay-text {
+      font-size: clamp(.76rem, 2.2vw, 1.08rem);
+      animation: rainbow 1.4s linear infinite;
+      margin-top: 1rem;
+      letter-spacing: .04em;
+    }
+
+    #screen4 .friend-name-big {
+      font-size: clamp(.62rem, 1.8vw, .9rem);
+      color: var(--neon-c);
+      margin-top: .45rem;
+      text-shadow: 0 0 10px rgba(109,229,255,.8);
+    }
+
+    #screen4 .action-btns { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; margin-top: 1.1rem; }
+
+    .dl-btn {
+      font-size: .52rem;
+      padding: .73rem 1.08rem;
+    }
+
+    .dl-btn {
+      background: linear-gradient(180deg, #a9ffcb, var(--neon-g));
+      color: #012614;
+      box-shadow: 0 6px 0 #1f8a57, 0 0 14px rgba(82,255,154,.4);
+    }
+
+    #certStatus {
+      font-size: .46rem;
+      color: var(--neon-g);
+      min-height: 1rem;
+      margin-top: .46rem;
+      text-shadow: 0 0 6px rgba(82,255,154,.5);
+    }
+
+    /* S5 */
+    #screen5 .sad-gif {
+      width: 170px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,107,107,.55);
+      box-shadow: 0 0 20px rgba(255,107,107,.44);
+      margin-bottom: 1rem;
+    }
+
+    #screen5 .sad-msg {
+      font-size: .5rem;
+      color: #d2bdc0;
+      line-height: 2.2;
+      margin-bottom: 1.2rem;
+    }
+
+    #screen5 .retry-btn {
+      font-size: .58rem;
+      padding: .75rem 1.45rem;
+      background: linear-gradient(180deg, #ff9f9f, var(--neon-r));
+      color: #290404;
+      box-shadow: 0 7px 0 #a03434, 0 0 14px rgba(255,107,107,.35);
+    }
+
+    @keyframes blink { 0%,49%{opacity:1}50%,100%{opacity:0} }
+    @keyframes rainbow { 0%{color:#ff6b6b}16%{color:#ff9f43}33%{color:#ffd166}50%{color:#52ff9a}66%{color:#6de5ff}83%{color:#90a7ff}100%{color:#ff6b6b} }
+    @keyframes glitch { 0%,88%,100%{transform:none;text-shadow:0 0 14px rgba(255,209,102,.75)} 90%{transform:skewX(-4deg) translateX(3px);text-shadow:-2px 0 rgba(255,91,138,.8),2px 0 rgba(109,229,255,.8)} 92%{transform:skewX(4deg) translateX(-2px)} 94%{transform:none} }
+    @keyframes panelRise { from { opacity: .5; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    @media (min-width: 1024px) {
+      .screen {
+        padding: 1.4rem;
+      }
+
+      .card {
+        width: min(82vw, 700px);
+        padding: 2rem 2.3rem;
+      }
+
+      #screen2 h2,
+      #screen3 h2 {
+        font-size: clamp(.86rem, 1.3vw, 1.08rem);
+      }
+
+      #screen2 input {
+        font-size: .72rem;
+      }
+
+      #screen2 .next-btn,
+      .btn-yes,
+      .btn-no,
+      .dl-btn,
+      #screen5 .retry-btn {
+        font-size: .56rem;
+      }
+
+      #screen4 .gift-wrap {
+        padding: 1.35rem 1.2rem;
+      }
+
+      #joyGif,
+      #screen5 .sad-gif {
+        width: 176px;
+        height: 176px;
+      }
+    }
+
+    @media (min-width: 1440px) {
+      .card {
+        width: min(70vw, 760px);
+      }
+
+      #screen4 .action-btns {
+        gap: 1rem;
+      }
+
+      #screen4 .yay-text {
+        font-size: 1.12rem;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .card {
+        width: min(96vw, 620px);
+        padding: 1.35rem 1rem 1.55rem;
+      }
+
+      #screen2 h2,
+      #screen3 h2 {
+        line-height: 1.6;
+      }
+
+      #screen4 .gift-wrap {
+        padding: 1rem .9rem 1.15rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .screen {
+        align-items: center;
+        overflow-y: hidden;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+      }
+
+      .card { width: min(95vw, 620px); padding: 1.35rem .95rem 1.55rem; border-radius: 18px; }
+      .card {
+        border-color: rgba(210,236,255,.38);
+        box-shadow:
+          0 22px 40px rgba(0,0,0,.5),
+          0 0 24px rgba(109,229,255,.18);
+      }
+
+      #screen2 h2,
+      #screen3 h2 {
+        font-size: clamp(.68rem, 4.2vw, .86rem);
+      }
+
+      #screen2 input {
+        font-size: .62rem;
+        padding: .82rem .75rem;
+      }
+
+      #screen2 .next-btn,
+      .btn-yes,
+      .btn-no,
+      .dl-btn,
+      #screen5 .retry-btn {
+        font-size: .5rem;
+        padding: .72rem .9rem;
+      }
+
+      .choice-btns { gap: .65rem; }
+      .btn-yes, .btn-no { width: 100%; max-width: 260px; }
+      #joyGif { width: 136px; height: 136px; border-radius: 16px; }
+      .dl-btn { width: 100%; max-width: 260px; }
+      #screen4 .action-btns { width: 100%; }
+    }
+
+    @media (max-width: 420px) {
+      .card {
+        width: 96vw;
+        padding: 1.1rem .75rem 1.25rem;
+      }
+
+      .quest-note {
+        font-size: .42rem;
+        line-height: 2;
+      }
+
+      #screen4 .yay-text {
+        font-size: .64rem;
+      }
+
+      #screen4 .friend-name-big,
+      #certStatus,
+      #screen5 .sad-msg {
+        font-size: .44rem;
+      }
+
+      #joyGif,
+      #screen5 .sad-gif {
+        width: 124px;
+        height: 124px;
+      }
+    }
+
+    @media (max-height: 700px) and (min-width: 641px) {
+      .screen {
+        align-items: flex-start;
+        overflow-y: auto;
+      }
+
+      .card,
+      #screen4 .gift-wrap {
+        margin-top: .7rem;
+        margin-bottom: .7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<!-- SCREEN 1 -->
+<div class="screen" id="screen1">
+  <div class="card card-green" style="cursor:pointer" id="tapCard">
+    <canvas id="heartCanvas" width="64" height="56"
+      style="display:block;margin:0 auto 1rem;image-rendering:pixelated;width:64px;height:56px;"></canvas>
+    <div class="quest-note">
+      A QUEST AWAITS YOU
+    </div>
+    <div class="blink">► PRESS START ◄</div>
+  </div>
+</div>
+
+<!-- SCREEN 2 -->
+<div class="screen hidden" id="screen2">
+  <div class="card card-pink">
+    <h2>ENTER YOUR NAME</h2>
+    <input type="text" id="nameInput" placeholder="YOUR NAME HERE" maxlength="24" autocomplete="off"/>
+    <button class="next-btn" id="nameNextBtn">CONFIRM ►</button>
+  </div>
+</div>
+
+<!-- SCREEN 3 -->
+<div class="screen hidden" id="screen3">
+  <div class="card card-yellow">
+    <h2>CAN WE BE GOOD FRIENDS?</h2>
+    <div class="subq" id="canWeSubQ"></div>
+    <div class="choice-btns">
+      <button class="btn-yes" id="yesBtn">✓ YES</button>
+      <button class="btn-no"  id="noBtn">✗ NO</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4 -->
+<div class="screen hidden" id="screen4">
+  <canvas id="celebCanvas"></canvas>
+  <canvas id="rainCanvas"></canvas>
+  <div class="gift-wrap">
+    <img id="joyGif" src="if_yes.gif" alt="happy" />
+    <div class="yay-text">FRIENDSHIP UNLOCKED!</div>
+    <div class="friend-name-big" id="celebName"></div>
+    <div class="action-btns">
+      <button class="dl-btn"    id="dlCertBtn">⬇ DOWNLOAD CERT</button>
+    </div>
+    <div id="certStatus"></div>
+  </div>
+</div>
+
+<!-- SCREEN 5 -->
+<div class="screen hidden" id="screen5">
+  <div class="card card-pink card-danger">
+    <img class="sad-gif" src="if_no.gif" alt="sad"/>
+    <div class="sad-msg">OKAY...<br>I UNDERSTAND...</div>
+    <button class="retry-btn" id="retryBtn">↺ TRY AGAIN?</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ═══ CONFIG ═══
+// ═══ HELPERS ═══
+function randInt(a,b){ return Math.floor(Math.random()*(b-a))+a; }
+function randEl(arr){ return arr[randInt(0,arr.length)]; }
+
+// ═══ BG PIXEL WORLD ═══
+const bgCanvas=document.getElementById('bgCanvas');
+const bgCtx=bgCanvas.getContext('2d');
+function resizeBg(){ bgCanvas.width=innerWidth; bgCanvas.height=innerHeight; }
+resizeBg(); window.addEventListener('resize',resizeBg);
+
+const PAL=['#39ff14','#ff00ff','#00fff7','#ffe600','#ff3c3c','#ff8800','#a855f7','#00bfff'];
+const SPRITES={
+  star:    ['00100','01110','11111','01110','00100'],
+  heart:   ['01010','11111','11111','01110','00100'],
+  coin:    ['01110','10001','10101','10001','01110'],
+  ship:    ['00100','01110','11111','11111','10001'],
+  diamond: ['00100','01110','11111','01110','00100'],
+  mush:    ['01110','11111','01010','01010','01110'],
+};
+const SK=Object.keys(SPRITES);
+
+function drawSpr(ctx,spr,x,y,sc,col){
+  ctx.fillStyle=col;
+  spr.forEach((row,r)=>[...row].forEach((c,k)=>{
+    if(c==='1') ctx.fillRect(Math.round(x+k*sc),Math.round(y+r*sc),sc,sc);
+  }));
+}
+
+class Ent {
+  constructor(init){this.reset(init);}
+  reset(init){
+    this.x=randInt(0,innerWidth);
+    this.y=init?randInt(0,innerHeight):(Math.random()<.5?-20:innerHeight+20);
+    this.vx=(Math.random()-.5)*1.1;
+    this.vy=Math.random()<.5?.3+Math.random()*.9:-.3-Math.random()*.9;
+    this.sc=randInt(2,5);this.sp=randEl(SK);this.co=randEl(PAL);
+    this.al=.12+Math.random()*.25;this.ph=Math.random()*Math.PI*2;this.ps=.025+Math.random()*.04;
+  }
+  draw(ctx){
+    this.ph+=this.ps;this.x+=this.vx;this.y+=this.vy;
+    if(this.x<-40||this.x>innerWidth+40||this.y<-40||this.y>innerHeight+40)this.reset(false);
+    ctx.save();ctx.globalAlpha=this.al*(0.65+0.35*Math.sin(this.ph));
+    drawSpr(ctx,SPRITES[this.sp],this.x,this.y,this.sc,this.co);ctx.restore();
+  }
+}
+const ents=[];for(let i=0;i<44;i++)ents.push(new Ent(true));
+
+function bgLoop(){
+  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+  ents.forEach(e=>e.draw(bgCtx));
+  bgCtx.globalAlpha=.13;
+  for(let x=0;x<innerWidth;x+=20){bgCtx.fillStyle=randEl(PAL);bgCtx.fillRect(x,innerHeight-24,16,3);}
+  bgCtx.globalAlpha=1;
+  requestAnimationFrame(bgLoop);
+}bgLoop();
+
+// Animated heart S1
+const hC=document.getElementById('heartCanvas');const hCtx=hC.getContext('2d');
+const HSP=['01010','11111','11111','01110','00100'];let hh=0;
+(function animH(){
+  hCtx.clearRect(0,0,64,56);hh=(hh+2)%360;
+  HSP.forEach((row,r)=>[...row].forEach((c,k)=>{
+    if(c==='1'){hCtx.fillStyle=`hsl(${hh+k*30},100%,62%)`;hCtx.fillRect(7+k*10,3+r*10,9,9);}
+  }));requestAnimationFrame(animH);
+})();
+
+// ═══ SCREEN MANAGER ═══
+let playerName='',currentScreen='screen1';
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.id===id?s.classList.remove('hidden'):s.classList.add('hidden'));
+  if(id!=='screen4') stopCozyRain();
+  currentScreen=id;
+}
+
+// S1
+document.getElementById('tapCard').addEventListener('click',()=>{beep(440,.08);goTo('screen2');});
+document.addEventListener('keydown',()=>{if(currentScreen==='screen1'){beep(440,.08);goTo('screen2');}});
+
+// S2
+document.getElementById('nameNextBtn').addEventListener('click',confirmName);
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmName();});
+function confirmName(){
+  const v=document.getElementById('nameInput').value.trim();
+  if(!v){shake(document.getElementById('nameInput'));return;}
+  playerName=toTitleCase(v);
+  document.getElementById('nameInput').value=playerName;
+  document.getElementById('canWeSubQ').textContent='';
+  beep(523,.08);goTo('screen3');
+}
+function shake(el){el.style.transform='translateX(6px)';setTimeout(()=>el.style.transform='translateX(-6px)',80);setTimeout(()=>el.style.transform='',160);}
+function toTitleCase(str){
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w=>w.charAt(0).toUpperCase()+w.slice(1))
+    .join(' ');
+}
+
+// S3
+document.getElementById('yesBtn').addEventListener('click',()=>{
+  cheer();
+  document.getElementById('celebName').textContent=`WELCOME, ${playerName.toUpperCase()}!`;
+  goTo('screen4');startCelebration();startCozyRain();
+  generateCert(playerName);
+});
+document.getElementById('noBtn').addEventListener('click',()=>{sad();goTo('screen5');});
+
+// S4
+document.getElementById('dlCertBtn').addEventListener('click',()=>generateCert(playerName));
+
+// S5
+document.getElementById('retryBtn').addEventListener('click',()=>{
+  document.getElementById('nameInput').value='';beep(440,.08);goTo('screen1');
+});
+
+// ═══ CONFETTI ═══
+const celebCanvas=document.getElementById('celebCanvas');
+const cCtx=celebCanvas.getContext('2d');
+let confetti=[];
+function startCelebration(){
+  celebCanvas.width=innerWidth;celebCanvas.height=innerHeight;confetti=[];
+  for(let i=0;i<140;i++){
+    confetti.push({x:Math.random()*innerWidth,y:-Math.random()*innerHeight*.5,
+      vx:(Math.random()-.5)*3,vy:2+Math.random()*3.5,w:6+Math.random()*9,h:4+Math.random()*5,
+      color:randEl(PAL),rot:Math.random()*Math.PI*2,rotV:(Math.random()-.5)*.14});
+  }
+  celebLoop();
+}
+function celebLoop(){
+  if(currentScreen!=='screen4')return;
+  cCtx.clearRect(0,0,celebCanvas.width,celebCanvas.height);
+  confetti.forEach(c=>{
+    c.x+=c.vx;c.y+=c.vy;c.rot+=c.rotV;
+    if(c.y>innerHeight+20){c.y=-20;c.x=Math.random()*innerWidth;}
+    cCtx.save();cCtx.translate(c.x,c.y);cCtx.rotate(c.rot);
+    cCtx.fillStyle=c.color;cCtx.globalAlpha=.88;cCtx.fillRect(-c.w/2,-c.h/2,c.w,c.h);cCtx.restore();
+  });
+  requestAnimationFrame(celebLoop);
+}
+
+// ═══ COZY RAIN (S4) ═══
+const rainCanvas=document.getElementById('rainCanvas');
+const rCtx=rainCanvas.getContext('2d');
+let rainDrops=[];
+let rainRunning=false;
+const RAIN_CONFIG={
+  minDrops:12,
+  maxDrops:30,
+  areaPerDrop:62000,
+  minLen:7,
+  maxLen:12,
+  minVy:0.15,
+  maxVy:0.38,
+  minVx:-0.12,
+  maxVx:-0.04,
+  minAlpha:0.06,
+  maxAlpha:0.13,
+  minWidth:0.6,
+  maxWidth:1.1
+};
+
+function startCozyRain(){
+  rainCanvas.width=innerWidth;
+  rainCanvas.height=innerHeight;
+  rainDrops=[];
+  const targetDrops=Math.max(
+    RAIN_CONFIG.minDrops,
+    Math.min(RAIN_CONFIG.maxDrops, Math.round((rainCanvas.width*rainCanvas.height)/RAIN_CONFIG.areaPerDrop))
+  );
+  for(let i=0;i<targetDrops;i++){
+    rainDrops.push({
+      x:Math.random()*rainCanvas.width,
+      y:Math.random()*rainCanvas.height,
+      len:RAIN_CONFIG.minLen+Math.random()*(RAIN_CONFIG.maxLen-RAIN_CONFIG.minLen),
+      vy:RAIN_CONFIG.minVy+Math.random()*(RAIN_CONFIG.maxVy-RAIN_CONFIG.minVy),
+      vx:RAIN_CONFIG.minVx+Math.random()*(RAIN_CONFIG.maxVx-RAIN_CONFIG.minVx),
+      a:RAIN_CONFIG.minAlpha+Math.random()*(RAIN_CONFIG.maxAlpha-RAIN_CONFIG.minAlpha),
+      w:RAIN_CONFIG.minWidth+Math.random()*(RAIN_CONFIG.maxWidth-RAIN_CONFIG.minWidth),
+    });
+  }
+  rainRunning=true;
+  rainLoop();
+}
+
+function stopCozyRain(){
+  rainRunning=false;
+  rCtx.clearRect(0,0,rainCanvas.width,rainCanvas.height);
+}
+
+function rainLoop(){
+  if(!rainRunning||currentScreen!=='screen4')return;
+  rCtx.clearRect(0,0,rainCanvas.width,rainCanvas.height);
+  rainDrops.forEach(d=>{
+    d.x+=d.vx;
+    d.y+=d.vy;
+    if(d.y>rainCanvas.height+24||d.x<-28){
+      d.y=-12;
+      d.x=Math.random()*rainCanvas.width;
+    }
+    rCtx.save();
+    rCtx.globalAlpha=d.a;
+    rCtx.strokeStyle='#c9ecff';
+    rCtx.lineWidth=d.w;
+    rCtx.beginPath();
+    rCtx.moveTo(d.x,d.y);
+    rCtx.lineTo(d.x+d.vx*3,d.y-d.len);
+    rCtx.stroke();
+    rCtx.restore();
+  });
+  requestAnimationFrame(rainLoop);
+}
+
+// ═══ AUDIO ═══
+let audioCtx;
+function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function beep(f,d){try{const a=getAC(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=f;o.type='square';g.gain.setValueAtTime(.07,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.start();o.stop(a.currentTime+d);}catch(e){}}
+function cheer(){[523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,.12),i*100));}
+function sad(){[523,440,349].forEach((n,i)=>setTimeout(()=>beep(n,.18),i*160));}
+
+// ═══════════════════════════════════════════════════════
+// CERTIFICATE — REALISTIC RETRO PAPER + COFFEE TEXTURE
+// ═══════════════════════════════════════════════════════
+function generateCert(name){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+  const W=841.89,H=595.28,cx=W/2;
+
+  // Minimal parchment base
+  doc.setFillColor(246,236,208);
+  doc.rect(0,0,W,H,'F');
+  doc.setFillColor(252,246,228);
+  doc.setGState(new doc.GState({opacity:.42}));
+  doc.ellipse(cx,H/2,275,180,'F');
+  doc.setGState(new doc.GState({opacity:1}));
+
+  // Soft edge aging, kept subtle
+  doc.setFillColor(176,130,70);
+  doc.setGState(new doc.GState({opacity:.10}));
+  doc.rect(0,0,W,24,'F');
+  doc.rect(0,H-24,W,24,'F');
+  doc.rect(0,0,22,H,'F');
+  doc.rect(W-22,0,22,H,'F');
+  doc.setGState(new doc.GState({opacity:1}));
+
+  // Light grain for realism without clutter
+  doc.setGState(new doc.GState({opacity:.022}));
+  for(let i=0;i<360;i++){
+    const gx=Math.random()*W,gy=Math.random()*H,gs=.8+Math.random()*1.3;
+    const v=Math.floor(110+Math.random()*70);
+    doc.setFillColor(v,v-12,v-24);
+    doc.rect(gx,gy,gs,gs,'F');
+  }
+  doc.setGState(new doc.GState({opacity:1}));
+
+  // Side/corner seals removed for a cleaner layout.
+
+  // Clean frame
+  doc.setDrawColor(106,72,34);
+  doc.setLineWidth(1.5);
+  doc.rect(34,34,W-68,H-68,'S');
+  doc.setDrawColor(148,108,64);
+  doc.setLineWidth(.8);
+  doc.rect(44,44,W-88,H-88,'S');
+
+  // Header
+  doc.setFont('times','bolditalic');
+  doc.setFontSize(39);
+  doc.setTextColor(56,34,16);
+  doc.text('Certificate of Friendship', cx, 122, {align:'center'});
+
+  doc.setDrawColor(124,88,50);
+  doc.setLineWidth(.9);
+  doc.line(192,145,W-192,145);
+
+  // Body copy in italic calligraphy-like style
+  doc.setFont('times','italic');
+  doc.setFontSize(15);
+  doc.setTextColor(74,50,28);
+  doc.text('This certifies that', cx, 194, {align:'center'});
+
+  doc.setFont('times','bolditalic');
+  doc.setFontSize(34);
+  doc.setTextColor(40,23,10);
+  doc.text(name, cx, 252, {align:'center'});
+
+  doc.setFont('times','italic');
+  doc.setFontSize(15);
+  doc.setTextColor(74,50,28);
+  doc.text('is officially recognized as a trusted friend of', cx, 314, {align:'center'});
+
+  doc.setFont('times','bolditalic');
+  doc.setFontSize(23);
+  doc.setTextColor(52,30,13);
+  doc.text('Mahidi', cx, 346, {align:'center'});
+
+  doc.setFont('times','italic');
+  doc.setFontSize(11.5);
+  doc.setTextColor(92,64,38);
+  doc.text('Bound by trust, good vibes, and one legendary friendship quest.', cx, 378, {align:'center'});
+
+  // Signature lines
+  const sigY=H-118;
+  doc.setDrawColor(98,64,30);
+  doc.setLineWidth(.9);
+  doc.line(130,sigY,316,sigY);
+  doc.line(W-316,sigY,W-130,sigY);
+
+  doc.setFont('times','italic');
+  doc.setFontSize(11.5);
+  doc.setTextColor(74,50,28);
+  doc.text(name, 223, sigY-8, {align:'center'});
+  doc.text('Mahidi', W-223, sigY-8, {align:'center'});
+
+  doc.setFont('courier','normal');
+  doc.setFontSize(8);
+  doc.setTextColor(104,76,46);
+  doc.text('Signature', 223, sigY+20, {align:'center'});
+  doc.text('Signature', W-223, sigY+20, {align:'center'});
+
+  // Realistic official seal
+  const sealX=cx,sealY=H-98;
+  const toothCount=32;
+  const toothR=29;
+  for(let i=0;i<toothCount;i++){
+    const a=(Math.PI*2*i)/toothCount;
+    const tx=sealX+Math.cos(a)*toothR;
+    const ty=sealY+Math.sin(a)*toothR;
+    doc.setFillColor(156,43,39);
+    doc.setGState(new doc.GState({opacity:.22}));
+    doc.circle(tx,ty,2.6,'F');
+  }
+
+  doc.setFillColor(165,46,42);
+  doc.setGState(new doc.GState({opacity:.2}));
+  doc.circle(sealX,sealY,26.5,'F');
+  doc.setGState(new doc.GState({opacity:1}));
+  doc.setDrawColor(162,52,48);
+  doc.setLineWidth(1.4);
+  doc.circle(sealX,sealY,26,'S');
+  doc.setDrawColor(184,70,64);
+  doc.setLineWidth(1.1);
+  doc.circle(sealX,sealY,20.6,'S');
+  doc.setDrawColor(138,36,33);
+  doc.setLineWidth(.8);
+  doc.circle(sealX,sealY,14.2,'S');
+
+  doc.setFillColor(174,58,53);
+  doc.setGState(new doc.GState({opacity:.14}));
+  doc.circle(sealX,sealY,13.2,'F');
+  doc.setGState(new doc.GState({opacity:1}));
+
+  // Inner emblem rays
+  doc.setDrawColor(140,35,33);
+  doc.setLineWidth(.45);
+  for(let i=0;i<8;i++){
+    const a=(Math.PI*2*i)/8;
+    doc.line(
+      sealX+Math.cos(a)*4,
+      sealY+Math.sin(a)*4,
+      sealX+Math.cos(a)*9,
+      sealY+Math.sin(a)*9
+    );
+  }
+
+  doc.setFillColor(132,30,29);
+  doc.circle(sealX,sealY,3.1,'F');
+
+  doc.setFont('times','bolditalic');
+  doc.setFontSize(7.1);
+  doc.setTextColor(128,24,24);
+  doc.text('OFFICIAL', sealX, sealY-6, {align:'center'});
+  doc.setFont('courier','bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(120,26,26);
+  doc.text('CERTIFIED', sealX, sealY+2.2, {align:'center'});
+  doc.setFont('times','italic');
+  doc.setFontSize(6.7);
+  doc.setTextColor(128,24,24);
+  doc.text('', sealX, sealY+9.8, {align:'center'});
+
+  // Date
+  const now=new Date();
+  const ds=now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  doc.setFont('times','italic');
+  doc.setFontSize(10.5);
+  doc.setTextColor(96,68,38);
+  doc.text(`Issued on ${ds}`, W-56, H-58, {align:'right'});
+
+  const fn=`friendship-cert-${name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}.pdf`;
+  doc.save(fn);
+  document.getElementById('certStatus').textContent='✓ CERTIFICATE DOWNLOADED!';
+  setTimeout(()=>document.getElementById('certStatus').textContent='',3000);
+}
+</script>
+</body>
+</html>
