@@ -74,6 +74,7 @@
       transition: opacity 0.45s ease, transform 0.45s ease;
       padding: clamp(0.8rem, 3vw, 1.4rem);
       min-height: 100dvh;
+      width: 100%;
     }
 
     .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.93); }
@@ -81,7 +82,9 @@
     .card {
       position: relative;
       width: min(94vw, 620px);
+      max-width: 620px;
       padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.1rem, 2.6vw, 2.2rem);
+      margin-inline: auto;
       border-radius: var(--rad-lg);
       background: var(--card-bg);
       border: 3px solid var(--line-soft);
@@ -281,6 +284,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      width: min(94vw, 620px);
+      max-width: 620px;
+      margin-inline: auto;
       padding: 1.2rem;
       border-radius: var(--rad-lg);
       background: linear-gradient(150deg, rgba(9,13,30,.64), rgba(6,9,22,.42));
@@ -438,9 +444,10 @@
     @media (max-width: 640px) {
       .screen {
         align-items: center;
-        overflow-y: hidden;
+        justify-content: center;
+        overflow-y: auto;
         padding-top: max(1rem, env(safe-area-inset-top));
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
       }
 
       .card { width: min(95vw, 620px); padding: 1.35rem .95rem 1.55rem; border-radius: 18px; }
@@ -507,14 +514,14 @@
 
     @media (max-height: 700px) and (min-width: 641px) {
       .screen {
-        align-items: flex-start;
+        align-items: center;
         overflow-y: auto;
       }
 
       .card,
       #screen4 .gift-wrap {
-        margin-top: .7rem;
-        margin-bottom: .7rem;
+        margin-top: 0;
+        margin-bottom: 0;
       }
     }
   </style>
