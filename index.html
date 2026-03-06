@@ -204,8 +204,7 @@
     #screen2 .next-btn,
     .btn-yes,
     .btn-no,
-    .dl-btn,
-    #screen5 .retry-btn {
+    .dl-btn {
       font-family: 'Press Start 2P', monospace;
       border: 0;
       border-radius: 999px;
@@ -225,14 +224,12 @@
     #screen2 .next-btn:hover,
     .btn-yes:hover,
     .btn-no:hover,
-    .dl-btn:hover,
-    #screen5 .retry-btn:hover { transform: translateY(-2px) scale(1.01); }
+    .dl-btn:hover { transform: translateY(-2px) scale(1.01); }
 
     #screen2 .next-btn:active,
     .btn-yes:active,
     .btn-no:active,
-    .dl-btn:active,
-    #screen5 .retry-btn:active {
+    .dl-btn:active {
       transform: translateY(2px);
       box-shadow: 0 2px 0 rgba(0,0,0,.45);
     }
@@ -361,14 +358,6 @@
       margin-bottom: 1.2rem;
     }
 
-    #screen5 .retry-btn {
-      font-size: .58rem;
-      padding: .75rem 1.45rem;
-      background: linear-gradient(180deg, #ff9f9f, var(--neon-r));
-      color: #290404;
-      box-shadow: 0 7px 0 #a03434, 0 0 14px rgba(255,107,107,.35);
-    }
-
     @keyframes blink { 0%,49%{opacity:1}50%,100%{opacity:0} }
     @keyframes rainbow { 0%{color:#ff6b6b}16%{color:#ff9f43}33%{color:#ffd166}50%{color:#52ff9a}66%{color:#6de5ff}83%{color:#90a7ff}100%{color:#ff6b6b} }
     @keyframes glitch { 0%,88%,100%{transform:none;text-shadow:0 0 14px rgba(255,209,102,.75)} 90%{transform:skewX(-4deg) translateX(3px);text-shadow:-2px 0 rgba(255,91,138,.8),2px 0 rgba(109,229,255,.8)} 92%{transform:skewX(4deg) translateX(-2px)} 94%{transform:none} }
@@ -396,8 +385,7 @@
       #screen2 .next-btn,
       .btn-yes,
       .btn-no,
-      .dl-btn,
-      #screen5 .retry-btn {
+      .dl-btn {
         font-size: .56rem;
       }
 
@@ -472,8 +460,7 @@
       #screen2 .next-btn,
       .btn-yes,
       .btn-no,
-      .dl-btn,
-      #screen5 .retry-btn {
+      .dl-btn {
         font-size: .5rem;
         padding: .72rem .9rem;
       }
@@ -586,7 +573,6 @@
   <div class="card card-pink card-danger">
     <img class="sad-gif" src="if_no.gif" alt="sad"/>
     <div class="sad-msg">OKAY...<br>I UNDERSTAND...</div>
-    <button class="retry-btn" id="retryBtn">↺ TRY AGAIN?</button>
   </div>
 </div>
 
@@ -702,11 +688,6 @@ document.getElementById('noBtn').addEventListener('click',()=>{sad();goTo('scree
 
 // S4
 document.getElementById('dlCertBtn').addEventListener('click',()=>generateCert(playerName));
-
-// S5
-document.getElementById('retryBtn').addEventListener('click',()=>{
-  document.getElementById('nameInput').value='';beep(440,.08);goTo('screen1');
-});
 
 // ═══ CONFETTI ═══
 const celebCanvas=document.getElementById('celebCanvas');
