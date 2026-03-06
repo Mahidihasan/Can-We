@@ -343,6 +343,12 @@
     }
 
     /* S5 */
+    #screen5 {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
     #screen5 .sad-gif {
       width: 170px;
       border-radius: 16px;
@@ -356,6 +362,22 @@
       color: #d2bdc0;
       line-height: 2.2;
       margin-bottom: 1.2rem;
+    }
+
+    #lockNotice {
+      font-size: .34rem;
+      color: #ffb6b6;
+      line-height: 1.9;
+      min-height: 1.1rem;
+      text-shadow: 0 0 10px rgba(255,107,107,.35);
+      display: none;
+      opacity: 0;
+      transition: opacity .18s ease;
+    }
+
+    #lockNotice.show {
+      display: block;
+      opacity: 1;
     }
 
     @keyframes blink { 0%,49%{opacity:1}50%,100%{opacity:0} }
@@ -562,7 +584,7 @@
     <div class="yay-text">FRIENDSHIP UNLOCKED!</div>
     <div class="friend-name-big" id="celebName"></div>
     <div class="action-btns">
-      <button class="dl-btn"    id="dlCertBtn">⬇ CERTIFICATE</button>
+      <button class="dl-btn" id="dlCertBtn">⬇ CERTIFICATE</button>
     </div>
     <div id="certStatus"></div>
   </div>
@@ -573,6 +595,7 @@
   <div class="card card-pink card-danger">
     <img class="sad-gif" src="if_no.gif" alt="sad"/>
     <div class="sad-msg">OKAY...<br>I UNDERSTAND...</div>
+    <div id="lockNotice"></div>
   </div>
 </div>
 
@@ -647,7 +670,78 @@ const HSP=['01010','11111','11111','01110','00100'];let hh=0;
 
 // ═══ SCREEN MANAGER ═══
 let playerName='',currentScreen='screen1';
+const NO_LOCK_KEY='canwe_no_choice_lock_until';
+const NO_LOCK_MS=60*60*1000;
+const lockNotice=document.getElementById('lockNotice');
+let lockNoticeTimeout=null;
+let lockNoticeTicker=null;
+
+function getNoLockUntil(){
+  const raw=localStorage.getItem(NO_LOCK_KEY);
+  if(!raw) return 0;
+  const ts=Number(raw);
+  if(!Number.isFinite(ts)){
+    localStorage.removeItem(NO_LOCK_KEY);
+    return 0;
+  }
+  return ts;
+}
+
+function isNoLockActive(){
+  const until=getNoLockUntil();
+  if(until>Date.now()) return true;
+  if(until) localStorage.removeItem(NO_LOCK_KEY);
+  return false;
+}
+
+function setNoLock(){
+  localStorage.setItem(NO_LOCK_KEY,String(Date.now()+NO_LOCK_MS));
+}
+
+function formatLeft(ms){
+  const total=Math.max(0,Math.floor(ms/1000));
+  const h=Math.floor(total/3600);
+  const m=Math.floor((total%3600)/60);
+  const s=total%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function showLockNoticeFor3s(){
+  if(!lockNotice) return;
+  if(!isNoLockActive()) return;
+
+  const paint=()=>{
+    if(!isNoLockActive()) return;
+    const left=getNoLockUntil()-Date.now();
+    lockNotice.textContent=`CHOICE LOCKED: ${formatLeft(left)} LEFT`;
+  };
+
+  paint();
+  lockNotice.classList.add('show');
+
+  if(lockNoticeTicker) clearInterval(lockNoticeTicker);
+  lockNoticeTicker=setInterval(paint,1000);
+
+  if(lockNoticeTimeout) clearTimeout(lockNoticeTimeout);
+  lockNoticeTimeout=setTimeout(()=>{
+    if(lockNoticeTicker){
+      clearInterval(lockNoticeTicker);
+      lockNoticeTicker=null;
+    }
+    lockNotice.classList.remove('show');
+    lockNotice.textContent='';
+  },3000);
+}
+
+function initLockOnRefresh(){
+  if(!isNoLockActive()) return;
+  goTo('screen5');
+  // Ensure the screen swap and CSS classes are applied before showing notice.
+  requestAnimationFrame(()=>requestAnimationFrame(showLockNoticeFor3s));
+}
+
 function goTo(id){
+  if(id!=='screen5'&&isNoLockActive()) id='screen5';
   document.querySelectorAll('.screen').forEach(s=>s.id===id?s.classList.remove('hidden'):s.classList.add('hidden'));
   if(id!=='screen4') stopCozyRain();
   currentScreen=id;
@@ -680,14 +774,28 @@ function toTitleCase(str){
 
 // S3
 document.getElementById('yesBtn').addEventListener('click',()=>{
+  if(isNoLockActive()){
+    sad();
+    goTo('screen5');
+    return;
+  }
   cheer();
   document.getElementById('celebName').textContent=`WELCOME, ${playerName.toUpperCase()}!`;
   goTo('screen4');startCelebration();startCozyRain();
 });
-document.getElementById('noBtn').addEventListener('click',()=>{sad();goTo('screen5');});
+document.getElementById('noBtn').addEventListener('click',()=>{
+  setNoLock();
+  sad();
+  goTo('screen5');
+});
+
+initLockOnRefresh();
+window.addEventListener('load',initLockOnRefresh);
+window.addEventListener('pageshow',initLockOnRefresh);
 
 // S4
-document.getElementById('dlCertBtn').addEventListener('click',()=>generateCert(playerName));
+const dlCertBtn=document.getElementById('dlCertBtn');
+dlCertBtn.addEventListener('click',()=>generateCert(playerName));
 
 // ═══ CONFETTI ═══
 const celebCanvas=document.getElementById('celebCanvas');
