@@ -8,7 +8,7 @@
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Press+Start+2P&family=VT323&display=swap');
 
     :root {
       --bg-base: #070b16;
@@ -83,6 +83,35 @@
       pointer-events: none;
       background: radial-gradient(ellipse at center, rgba(2, 5, 12, 0) 45%, rgba(1, 2, 8, 0.8) 100%);
     }
+
+    .music-toggle {
+      position: fixed;
+      top: max(1rem, env(safe-area-inset-top));
+      right: max(1rem, env(safe-area-inset-right));
+      z-index: 30;
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      color: var(--txt-main);
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      cursor: pointer;
+      transition: color .2s ease, transform .2s ease;
+      display: none;
+    }
+
+    .music-toggle:hover { transform: scale(1.08); }
+    .music-toggle[aria-pressed="true"] { color: var(--neon-c); }
+    .music-toggle svg { width: 18px; height: 18px; }
+    .music-toggle .volume-off { display: none; }
+    .music-toggle[aria-pressed="false"] .volume-off { display: block; }
+    .music-toggle[aria-pressed="false"] .volume-on { display: none; }
+    .music-toggle.visible { display: grid; }
+
+    .audio-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 
     .screen {
@@ -349,13 +378,9 @@
     #joyGif {
       width: 164px;
       height: 164px;
-      border-radius: 20px;
-      border: 2px solid rgba(82, 255, 154, .72);
-      box-shadow: 0 0 24px rgba(255, 209, 102, .58), 0 0 42px rgba(255, 209, 102, .25);
       overflow: hidden;
       display: block;
       object-fit: cover;
-      background: #070714;
     }
 
     #screen4 .yay-text {
@@ -408,9 +433,6 @@
 
     #screen5 .sad-gif {
       width: 170px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 107, 107, .55);
-      box-shadow: 0 0 20px rgba(255, 107, 107, .44);
       margin-bottom: 1rem;
     }
 
@@ -623,13 +645,19 @@
       }
 
       .choice-btns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .65rem;
       }
 
       .btn-yes,
       .btn-no {
         width: 100%;
-        max-width: 260px;
+        min-width: 0;
+        max-width: none;
+        padding: .72rem .3rem;
+        font-size: clamp(.42rem, 2.5vw, .5rem);
+        white-space: nowrap;
       }
 
       #joyGif {
@@ -704,6 +732,17 @@
 
 <body>
 
+  <button class="music-toggle" id="musicToggle" type="button" aria-label="Turn music off" aria-pressed="true" title="Turn music off">
+    <svg class="volume-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a10 10 0 0 1 0 14" />
+    </svg>
+    <svg class="volume-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" /><path d="m16 9 5 6m0-6-5 6" />
+    </svg>
+  </button>
+  <audio class="audio-only" id="happyMusic" src="happy-happy-happy-cat.mp3" loop preload="auto"></audio>
+  <audio class="audio-only" id="sadMusic" src="crying-cat.mp3" loop preload="auto"></audio>
+
   <canvas id="bgCanvas"></canvas>
   <div class="scanlines"></div>
   <div class="vignette"></div>
@@ -768,6 +807,7 @@
 
   <!-- THIRD-PARTY LIBRARIES (jsPDF) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="./config.js"></script>
 
   <script type="module">
     /* ADDED SECTION: Firebase imports from CDN (v10 modular SDK) */
@@ -779,14 +819,10 @@
     // ═══════════════════════════════════════════════════════
     /* ADDED SECTION: Firebase configuration object and client initialization */
     // REPLACE WITH YOUR ACTUAL FIREBASE CONFIGURATION KEYS
-    const firebaseConfig = {
-      apiKey: "AIzaSyDd3g68o8j9Zvakv6bfDtuR6sucPgeD4L8",
-      authDomain: "canwe-e0957.firebaseapp.com",
-      projectId: "canwe-e0957",
-      storageBucket: "canwe-e0957.firebasestorage.app",
-      messagingSenderId: "679358380125",
-      appId: "1:679358380125:web:7bdfd0e49ec7a15c07f5b4"
-    };
+    const firebaseConfig = window.APP_CONFIG?.firebase;
+    if (!firebaseConfig?.apiKey || !firebaseConfig?.projectId || !firebaseConfig?.appId) {
+      throw new Error("Firebase config is missing. Add the Firebase settings to config.js.");
+    }
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -796,12 +832,12 @@
     // ═══════════════════════════════════════════════════════
     /* ADDED SECTION: EmailJS credentials and SDK initialization */
     // REPLACE WITH YOUR ACTUAL EMAILJS KEY AND TEMPLATE PARAMETERS
-    const EMAILJS_PUBLIC_KEY = "kJZ7yi77JoUfrdP2N";
-    const EMAILJS_SERVICE_ID = "service_yrw75tp";
-    const EMAILJS_TEMPLATE_ID = "template_sk1nu3o";
+    const EMAILJS_PUBLIC_KEY = window.APP_CONFIG?.emailjs?.publicKey;
+    const EMAILJS_SERVICE_ID = window.APP_CONFIG?.emailjs?.serviceId;
+    const EMAILJS_TEMPLATE_ID = window.APP_CONFIG?.emailjs?.templateId;
 
     // Initialize EmailJS safely
-    if (typeof emailjs !== "undefined") {
+    if (typeof emailjs !== "undefined" && EMAILJS_PUBLIC_KEY) {
       emailjs.init(EMAILJS_PUBLIC_KEY);
     } else {
       console.error("EmailJS library not loaded!");
@@ -813,7 +849,7 @@
     /* ADDED SECTION: Send notification mail to admin */
     async function sendAdminEmail(params) {
       try {
-        if (typeof emailjs !== "undefined") {
+        if (typeof emailjs !== "undefined" && EMAILJS_PUBLIC_KEY) {
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
         } else {
           throw new Error("EmailJS SDK is not available");
@@ -957,9 +993,6 @@
     function bgLoop() {
       bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
       ents.forEach(e => e.draw(bgCtx));
-      bgCtx.globalAlpha = .13;
-      for (let x = 0; x < innerWidth; x += 20) { bgCtx.fillStyle = randEl(PAL); bgCtx.fillRect(x, innerHeight - 24, 16, 3); }
-      bgCtx.globalAlpha = 1;
       requestAnimationFrame(bgLoop);
     } bgLoop();
 
@@ -1050,7 +1083,41 @@
       document.querySelectorAll('.screen').forEach(s => s.id === id ? s.classList.remove('hidden') : s.classList.add('hidden'));
       if (id !== 'screen4') stopCozyRain();
       currentScreen = id;
+      musicToggle.classList.toggle('visible', id === 'screen4' || id === 'screen5');
+      syncScreenMusic();
     }
+
+    const musicToggle = document.getElementById('musicToggle');
+    const screenMusic = {
+      screen4: document.getElementById('happyMusic'),
+      screen5: document.getElementById('sadMusic')
+    };
+    Object.values(screenMusic).forEach(audio => { audio.volume = 0.7; });
+    let musicEnabled = true;
+
+    function syncScreenMusic() {
+      const track = screenMusic[currentScreen];
+      Object.values(screenMusic).forEach(audio => {
+        if (audio !== track || !musicEnabled) {
+          audio.pause();
+          if (audio !== track) audio.currentTime = 0;
+        }
+      });
+      if (track && musicEnabled) {
+        const playback = track.play();
+        if (playback) playback.catch(() => {});
+      }
+    }
+
+    function setMusicEnabled(enabled) {
+      musicEnabled = enabled;
+      musicToggle.setAttribute('aria-pressed', String(enabled));
+      musicToggle.setAttribute('aria-label', enabled ? 'Turn music off' : 'Turn music on');
+      musicToggle.title = enabled ? 'Turn music off' : 'Turn music on';
+      syncScreenMusic();
+    }
+
+    musicToggle.addEventListener('click', () => setMusicEnabled(!musicEnabled));
 
     // S1
     document.getElementById('tapCard').addEventListener('click', () => { beep(440, .08); goTo('screen2'); });
@@ -1114,7 +1181,7 @@
         return;
       }
       cheer();
-      document.getElementById('celebName').textContent = `WELCOME, ${playerName.toUpperCase()}!`;
+      document.getElementById('celebName').textContent = `THANKU, ${playerName.toUpperCase()}!`;
       goTo('screen4'); startCelebration(); startCozyRain();
       handleFriendshipRegistered(playerName);
     });
@@ -1252,12 +1319,13 @@
     // ═══════════════════════════════════════════════════════
     // CERTIFICATE — REALISTIC RETRO PAPER + COFFEE TEXTURE
     // ═══════════════════════════════════════════════════════
-    function createCertificateDoc(name) {
+    async function createCertificateDoc(name) {
       const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
       if (!jsPDFClass) {
         console.error("jsPDF library not loaded!");
         return null;
       }
+      try { await document.fonts.load('600 58px Caveat'); } catch (e) { /* use the browser's cursive fallback */ }
       const doc = new jsPDFClass({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       const W = 841.89, H = 595.28, cx = W / 2;
 
@@ -1330,7 +1398,7 @@
       doc.setFont('times', 'italic');
       doc.setFontSize(11.5);
       doc.setTextColor(92, 64, 38);
-      doc.text('Bound by trust, good vibes, and one legendary friendship quest.', cx, 378, { align: 'center' });
+      doc.text('Bound by trust, good vibes, and one legendary friendship, approved by cats.', cx, 378, { align: 'center' });
 
       // Signature lines
       const sigY = H - 118;
@@ -1339,12 +1407,20 @@
       doc.line(130, sigY, 316, sigY);
       doc.line(W - 316, sigY, W - 130, sigY);
 
-      // Fountain-pen vibe using bold italic serif with deep ink color.
-      doc.setFont('times', 'bolditalic');
-      doc.setFontSize(16);
-      doc.setTextColor(34, 37, 56);
-      doc.text(name, 223, sigY - 10, { align: 'center' });
-      doc.text('Mahidi', W - 223, sigY - 10, { align: 'center' });
+      // Render cursive signatures as transparent ink images for a handwritten look.
+      const makeSignature = text => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 700;
+        canvas.height = 120;
+        const ctx = canvas.getContext('2d');
+        ctx.font = '600 70px Caveat, "Segoe Print", cursive';
+        ctx.fillStyle = '#222538';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 12, 60);
+        return canvas.toDataURL('image/png');
+      };
+      doc.addImage(makeSignature(name), 'PNG', 148, sigY - 48, 150, 34);
+      doc.addImage(makeSignature('Mahidi'), 'PNG', W - 298, sigY - 48, 150, 34);
 
       doc.setFont('courier', 'normal');
       doc.setFontSize(8);
@@ -1352,66 +1428,38 @@
       doc.text('Signature', 223, sigY + 20, { align: 'center' });
       doc.text('Signature', W - 223, sigY + 20, { align: 'center' });
 
-      // Realistic official seal
-      const sealX = cx, sealY = H - 102;
-      const toothCount = 32;
-      const toothR = 36;
-      for (let i = 0; i < toothCount; i++) {
-        const a = (Math.PI * 2 * i) / toothCount;
-        const tx = sealX + Math.cos(a) * toothR;
-        const ty = sealY + Math.sin(a) * toothR;
-        doc.setFillColor(156, 43, 39);
-        doc.setGState(new doc.GState({ opacity: .22 }));
-        doc.circle(tx, ty, 3.3, 'F');
-      }
-
-      doc.setFillColor(165, 46, 42);
-      doc.setGState(new doc.GState({ opacity: .2 }));
-      doc.circle(sealX, sealY, 33.5, 'F');
-      doc.setGState(new doc.GState({ opacity: 1 }));
-      doc.setDrawColor(162, 52, 48);
-      doc.setLineWidth(1.4);
-      doc.circle(sealX, sealY, 33, 'S');
-      doc.setDrawColor(184, 70, 64);
-      doc.setLineWidth(1.1);
-      doc.circle(sealX, sealY, 26.2, 'S');
-      doc.setDrawColor(138, 36, 33);
-      doc.setLineWidth(.8);
-      doc.circle(sealX, sealY, 18.5, 'S');
-
-      doc.setFillColor(174, 58, 53);
-      doc.setGState(new doc.GState({ opacity: .14 }));
-      doc.circle(sealX, sealY, 17.2, 'F');
-      doc.setGState(new doc.GState({ opacity: 1 }));
-
-      // Inner emblem rays
-      doc.setDrawColor(140, 35, 33);
-      doc.setLineWidth(.45);
-      for (let i = 0; i < 8; i++) {
-        const a = (Math.PI * 2 * i) / 8;
-        doc.line(
-          sealX + Math.cos(a) * 4,
-          sealY + Math.sin(a) * 4,
-          sealX + Math.cos(a) * 12,
-          sealY + Math.sin(a) * 12
-        );
-      }
-
-      doc.setFillColor(132, 30, 29);
-      doc.circle(sealX, sealY, 4.1, 'F');
-
-      doc.setFont('times', 'bolditalic');
-      doc.setFontSize(8.4);
-      doc.setTextColor(128, 24, 24);
-      doc.text('OFFICIAL', sealX, sealY - 7, { align: 'center' });
-      doc.setFont('courier', 'bold');
-      doc.setFontSize(7.4);
-      doc.setTextColor(120, 26, 26);
-      doc.text('CERTIFIED', sealX, sealY + 2.8, { align: 'center' });
-      doc.setFont('times', 'italic');
-      doc.setFontSize(6.7);
-      doc.setTextColor(128, 24, 24);
-      doc.text('', sealX, sealY + 9.8, { align: 'center' });
+      // Soft shaded cat paw keeps the official stamp feeling warm and playful.
+      const pawCanvas = document.createElement('canvas');
+      pawCanvas.width = pawCanvas.height = 320;
+      const paw = pawCanvas.getContext('2d');
+      paw.shadowColor = 'rgba(49, 21, 18, .24)';
+      paw.shadowBlur = 14;
+      paw.shadowOffsetY = 7;
+      const drawPad = (x, y, rx, ry, rotation) => {
+        paw.save();
+        paw.translate(x, y);
+        paw.rotate(rotation);
+        const grad = paw.createRadialGradient(-rx * .28, -ry * .35, 2, 0, 0, Math.max(rx, ry) * 1.15);
+        grad.addColorStop(0, '#c77c70');
+        grad.addColorStop(.48, '#a84e48');
+        grad.addColorStop(1, '#71302e');
+        paw.fillStyle = grad;
+        paw.beginPath();
+        paw.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+        paw.fill();
+        paw.shadowColor = 'transparent';
+        paw.fillStyle = 'rgba(255, 218, 196, .22)';
+        paw.beginPath();
+        paw.ellipse(-rx * .24, -ry * .36, rx * .46, ry * .2, -.15, 0, Math.PI * 2);
+        paw.fill();
+        paw.restore();
+      };
+      drawPad(72, 90, 34, 43, -.32);
+      drawPad(139, 56, 35, 45, -.12);
+      drawPad(207, 63, 35, 45, .16);
+      drawPad(265, 111, 33, 42, .38);
+      drawPad(165, 194, 70, 57, 0);
+      doc.addImage(pawCanvas.toDataURL('image/png'), 'PNG', cx - 27, H - 125, 54, 58);
 
       // Date
       const now = new Date();
@@ -1424,8 +1472,8 @@
       return doc;
     }
 
-    function generateCert(name, clearStatus = true) {
-      const doc = createCertificateDoc(name);
+    async function generateCert(name, clearStatus = true) {
+      const doc = await createCertificateDoc(name);
       if (!doc) return;
       const fn = `friendship-cert-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
       doc.save(fn);
