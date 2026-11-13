@@ -367,9 +367,8 @@
       margin-inline: auto;
       padding: 1.2rem;
       border-radius: var(--rad-lg);
-      background: linear-gradient(150deg, rgba(9, 13, 30, .64), rgba(6, 9, 22, .42));
+      background: linear-gradient(150deg, #101b32, #0a1022);
       border: 3px solid var(--accent-win);
-      backdrop-filter: blur(2px);
       box-shadow:
         0 20px 38px rgba(0, 0, 0, .45),
         0 0 24px rgba(109, 229, 255, .3);
@@ -1416,7 +1415,8 @@
         ctx.font = '600 70px Caveat, "Segoe Print", cursive';
         ctx.fillStyle = '#222538';
         ctx.textBaseline = 'middle';
-        ctx.fillText(text, 12, 60);
+        ctx.textAlign = 'center';
+        ctx.fillText(text, canvas.width / 2, 60);
         return canvas.toDataURL('image/png');
       };
       doc.addImage(makeSignature(name), 'PNG', 148, sigY - 48, 150, 34);
@@ -1428,37 +1428,23 @@
       doc.text('Signature', 223, sigY + 20, { align: 'center' });
       doc.text('Signature', W - 223, sigY + 20, { align: 'center' });
 
-      // Soft shaded cat paw keeps the official stamp feeling warm and playful.
+      // Minimal, muted cat paw stamp with a soft shadow.
+      const pawSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <defs><filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#342923" flood-opacity=".12"/></filter></defs>
+        <g fill="#786c65" fill-opacity=".32" filter="url(#soft-shadow)">
+          <ellipse cx="18" cy="31" rx="10" ry="14" transform="rotate(-25 18 31)"/>
+          <ellipse cx="40" cy="17" rx="10" ry="14" transform="rotate(-8 40 17)"/>
+          <ellipse cx="63" cy="19" rx="10" ry="14" transform="rotate(8 63 19)"/>
+          <ellipse cx="83" cy="35" rx="10" ry="14" transform="rotate(25 83 35)"/>
+          <path d="M16 67c0-13 11-24 23-24 5 0 8 3 11 7 3-4 7-7 12-7 12 0 22 11 22 24 0 12-11 19-34 19S16 79 16 67Z"/>
+        </g>
+      </svg>`;
+      const pawImage = new Image();
+      pawImage.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pawSvg)}`;
+      await pawImage.decode();
       const pawCanvas = document.createElement('canvas');
-      pawCanvas.width = pawCanvas.height = 320;
-      const paw = pawCanvas.getContext('2d');
-      paw.shadowColor = 'rgba(49, 21, 18, .24)';
-      paw.shadowBlur = 14;
-      paw.shadowOffsetY = 7;
-      const drawPad = (x, y, rx, ry, rotation) => {
-        paw.save();
-        paw.translate(x, y);
-        paw.rotate(rotation);
-        const grad = paw.createRadialGradient(-rx * .28, -ry * .35, 2, 0, 0, Math.max(rx, ry) * 1.15);
-        grad.addColorStop(0, '#c77c70');
-        grad.addColorStop(.48, '#a84e48');
-        grad.addColorStop(1, '#71302e');
-        paw.fillStyle = grad;
-        paw.beginPath();
-        paw.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-        paw.fill();
-        paw.shadowColor = 'transparent';
-        paw.fillStyle = 'rgba(255, 218, 196, .22)';
-        paw.beginPath();
-        paw.ellipse(-rx * .24, -ry * .36, rx * .46, ry * .2, -.15, 0, Math.PI * 2);
-        paw.fill();
-        paw.restore();
-      };
-      drawPad(72, 90, 34, 43, -.32);
-      drawPad(139, 56, 35, 45, -.12);
-      drawPad(207, 63, 35, 45, .16);
-      drawPad(265, 111, 33, 42, .38);
-      drawPad(165, 194, 70, 57, 0);
+      pawCanvas.width = pawCanvas.height = 240;
+      pawCanvas.getContext('2d').drawImage(pawImage, 0, 0, pawCanvas.width, pawCanvas.height);
       doc.addImage(pawCanvas.toDataURL('image/png'), 'PNG', cx - 27, H - 125, 54, 58);
 
       // Date
